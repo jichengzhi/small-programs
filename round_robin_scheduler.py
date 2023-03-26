@@ -2,14 +2,13 @@ from typing import List
 
 class Process:
 
-    def __init__(self, name, arrive_time, running_time, time_slice=50) -> None:
+    def __init__(self, name, arrive_time, running_time) -> None:
         self.name = name
         self.arrive_time = arrive_time
         self.running_time = running_time
-        self.time_slice = time_slice
 
-    def run(self, current_time: int) -> int:
-        t = min(self.running_time, self.time_slice)
+    def run(self, current_time: int, time_slice: int) -> int:
+        t = min(self.running_time, time_slice)
         self.arrive_time = current_time + t
         self.running_time -= t
         return t
@@ -24,37 +23,48 @@ class Process:
         if not isinstance(tar, Process):
             return False
         return self.name == tar.name
-
-
-def schedule(timetable: List[Process]) -> None:
-
-    current_time = 0
-    queue = [proc for proc in timetable if proc.arrive_time <= current_time]
     
-    while len(queue) > 0:
 
-        print(f'time: {current_time}, queue: {", ".join(list(map(str, queue)))}')
+class RoundRobinScheduler:
 
-        proc = queue[0]
-        queue = queue[1:]
+    def __init__(self, processes: List[Process], time_slice=50) -> None:
+        self.time_slice = time_slice
+        self.processes = processes
 
-        running_time = proc.run(current_time)
-        print(f'time: {current_time}, run {proc.name} for {running_time}ms')
-        current_time += running_time
-
-        newly_arrived = [e for e in timetable if e.arrive_time <= current_time and not e.is_done() and e not in queue]
-        newly_arrived.sort(key=lambda p: p.arrive_time)
-
-        queue += newly_arrived
+    def all_done(self) -> bool:
+        return all([p.is_done() for p in self.processes])
 
 
-schedule([
-    Process('P1', 0, 95),
-    Process('P4', 15, 65),
-    Process('P5', 75, 35),
-    Process('P3', 175, 145),
-    Process('P2', 201, 10)
-])
+    def schedule(self) -> None:
+
+        current_time = 0
+        
+        while not self.all_done():
+
+            queue = [proc for proc in self.processes if proc.arrive_time <= current_time and not proc.is_done()]
+            queue.sort(key=lambda p: p.arrive_time)
+
+            print(f'time: {current_time}, queue: {", ".join(list(map(str, queue)))}')
+
+            proc = queue[0]
+
+            running_time = proc.run(current_time, self.time_slice)
+            print(f'time: {current_time}, run {proc.name} for {running_time}ms')
+            current_time += running_time
+
+
+if __name__ == '__main__':
+
+    processes = [
+        Process('P1', 0, 95),
+        Process('P4', 15, 65),
+        Process('P5', 75, 35),
+        Process('P3', 175, 145),
+        Process('P2', 201, 10)
+    ]
+
+    scheduler = RoundRobinScheduler(processes, time_slice=50)
+    scheduler.schedule()    
 
 # will output
 """
